@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-app
+spec:
+  # Минимально 2 пода — чтобы всегда кто-то работал
+  replicas: 2
+  selector:
+    matchLabels:
+      app: web-app
+  template:
+    metadata:
+      labels:
+        app: web-app
+    spec:
+      containers:
+        - name: web-app
+          image: your-dockerhub/web-app:latest
+          ports:
+            - containerPort: 80
+          resources:
+            # Минимальные ресурсы на запуск (чтобы поды не тормозили при старте)
+            requests:
+              cpu: "200m"      # Это чуть больше, чем приложение будет потреблять постоянно
+              memory: "128Mi"  # Память стабильная, так что ставим по задаче
+            # Ограничения, чтобы не съели весь кластер
+            limits:
+              cpu: "500m"      # Сильно больше не дадим
+              memory: "256Mi"  # Просто запас по памяти на всякий случай
+          readinessProbe:
+            # Проверяем, готово ли приложение принимать запросы
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            # Проверяем, живо ли приложение (если зависло — перезапустим)
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
